@@ -2,15 +2,14 @@
 # Written by Lucas Yichen Jiao, although some parts were taken from CS50 AI's week zero project
 
 # Module imports
-import pygame
+import pygame, sys
 import generator
 from time import perf_counter
-from pathlib import Path
 import recordscore
 
 # Pygame window setup
 pygame.init()
-screen = pygame.display.set_mode((720, 720))
+screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
 pygame.display.set_caption("Pysudoku")
 clock = pygame.time.Clock()
 
@@ -35,6 +34,7 @@ errors = [[False for i in range(9)] for i in range(9)] # Checks if the current t
 
 io = False
 inited = False
+fullscreen = False
 ind_i, ind_j = 0, 0 # used for tracking which num_pos event.key needs to fill
 TILE_SIZE = 60
 TILE_ORIGIN = 120 # 720/8
@@ -45,6 +45,19 @@ def generate_title(text, center):
     titlehitbox = title.get_rect()
     titlehitbox.center = center
     screen.blit(title, titlehitbox)
+
+def generate_heading(text, center):
+    title = heading.render(text, True, white)
+    titlehitbox = title.get_rect()
+    titlehitbox.center = center
+    screen.blit(title, titlehitbox)
+
+def generate_button(text, rect):
+    txt = subheading.render(text, True, black)
+    hitbox = txt.get_rect()
+    hitbox.center = rect.center
+    pygame.draw.rect(screen, white, rect)
+    screen.blit(txt, hitbox)
 
 def check_win():
     nonzero = 0
@@ -69,12 +82,13 @@ def check_win():
 # Pygame mainloop
 gameOn = True
 start_time, end_time = 0, 0
+difficulty = 0
 
 while gameOn:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             gameOn = False
-        
+
         if event.type == pygame.KEYDOWN and io:
             if event.key > pygame.K_0 and event.key <= pygame.K_9:
                 overriderect = pygame.Rect(num_pos[9*ind_i + ind_j][0]-TILE_SIZE/3, num_pos[9*ind_i + ind_j][1]-TILE_SIZE/3, 2*TILE_SIZE/3, 2*TILE_SIZE/3)
@@ -106,24 +120,40 @@ while gameOn:
                     inited = False
 
     if gamestate == "TITLE_SCREEN":
-        title = heading.render("Welcome to pysudoku!", True, white)
-        titlehitbox = title.get_rect()
-        titlehitbox.center = (360, 75)
-        screen.blit(title, titlehitbox)
-
+        generate_heading("Welcome to pysudoku!", (360, 75))
         playGame = pygame.Rect(220, 360, 280, 75)
-        playText = subheading.render("Play the game", True, black)
-        playhitbox = playText.get_rect()
-        playhitbox.center = playGame.center
-        pygame.draw.rect(screen, white, playGame)
-        screen.blit(playText, playGame)
-
+        gameQuit = pygame.Rect(220, 450, 280, 75)
+        generate_button("Play the game", playGame)
+        generate_button("Quit", gameQuit)
         click, _0, _1 = pygame.mouse.get_pressed()
         if click:
             mpos = pygame.mouse.get_pos()
             if playGame.collidepoint(mpos):
-                gamestate = "GAMEPLAY"
+                gamestate = "SELECT_DIFF"
                 screen.fill(black)
+            
+            elif gameQuit.collidepoint(mpos):
+                sys.exit() # exits directly out of code
+    
+    elif gamestate == "SELECT_DIFF":
+        generate_heading("Select difficlty: ", (360, 100))
+        easy, hard = pygame.Rect(60, 360, 200, 75), pygame.Rect(450, 360, 200, 75)
+        generate_button("Easy", easy)
+        generate_button("Hard", hard)
+        click, _0, _1 = pygame.mouse.get_pressed()
+        if click:
+            mpos = pygame.mouse.get_pos()
+            if easy.collidepoint(mpos):
+                gamestate = "GAMEPLAY"
+                difficulty = 1
+                screen.fill(black)
+                inited = False
+            
+            elif hard.collidepoint(mpos):
+                gamestate = "GAMEPLAY"
+                difficulty = 2
+                screen.fill(black)
+                inited = False
         
     elif gamestate == "GAMEPLAY":
         
@@ -143,7 +173,7 @@ while gameOn:
                 cpy = []
                 for i in range(9):
                     cpy.append([num for num in answer_board[i]])
-                player_board = generator.player_board(cpy, 1)
+                player_board = generator.player_board(cpy, difficulty)
                 if player_board != None:
                     break
             
@@ -175,20 +205,30 @@ while gameOn:
                         ind_i = i
                         ind_j = j
         
-    elif gamestate == "VICTORY":  
+    else:  
         if not inited: 
             end_time = perf_counter()
-            title = heading.render("Congratulations!\n You completed the puzzle!", True, white)
-            titlehitbox = title.get_rect()
-            titlehitbox.center = (360, 75)
-            screen.blit(title, titlehitbox)
-            highscore = recordscore.file_io(end_time-start_time)
-            generate_title(f"This round: {end_time-start_time} seconds", (300,300))
-            generate_title(f"Your best: {highscore} seconds", (200,200))
+            generate_heading("Congratulations!", (360, 75))
+            generate_title("You beat the game!", (360, 120))
+            highscore = recordscore.file_io(round(end_time-start_time, 2))
+            generate_title(f"This round: {round(end_time-start_time, 2)} seconds", (360,300))
+            generate_title(f"Your best: {highscore} seconds", (360,350))
             inited = True
+        
+        replay = pygame.Rect(275, 425, 200, 75)
+        generate_button("Play again!", replay)
+        click, _0, _1 = pygame.mouse.get_pressed()
 
-    pygame.display.update() 
+        if click:
+            mpos = pygame.mouse.get_pos()
+            if replay.collidepoint(mpos):
+                gamestate = "SELECT_DIFF"
+                screen.fill((0,0,0))
+
+    pygame.display.flip() 
     clock.tick(24)
+
+
 
         
 
