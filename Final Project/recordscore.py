@@ -6,18 +6,19 @@ import pickle
 def file_io(score):
     # load high score
     try:
-        with open("score.dat", "rb") as f:
+        with open(f"{Path.home()}/score.dat", "rb") as f:
             hs = pickle.load(f)
         
     except: 
         hs = 2**63-1
     
     # evaluate user score
-    with open("score.dat", "wb") as f:
+    with open(f"{Path.home()}/score.dat", "wb") as f:
         pickle.dump(min(hs, score), f)
     
     print(hs)
     print(score)
     # return current high score. 
     return min(hs, score)
-        
+
+    
