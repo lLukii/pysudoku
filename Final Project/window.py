@@ -9,8 +9,8 @@ import recordscore
 
 # Pygame window setup
 pygame.init()
-width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
 screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
 pygame.display.set_caption("Pysudoku")
 clock = pygame.time.Clock()
 
@@ -33,9 +33,11 @@ player_board = [] # initial layout board given to player
 dynamic_board = []
 errors = [[False for i in range(9)] for i in range(9)] # Checks if the current tile number is valid based on the situation of the board. 
 
+mistakes = 0
 io = False
 inited = False
 fullscreen = False
+update_mistake_c = False
 ind_i, ind_j = 0, 0 # used for tracking which num_pos event.key needs to fill
 TILE_SIZE = 60
 TILE_ORIGIN = width/8 
@@ -109,6 +111,8 @@ while gameOn:
                     num = nums.render(str(event.key-48), True, red)
                     generate_title(f"Oops! You have a mistake at row {ind_i+1} column {ind_j+1}", (400, 50))   
                     errors[ind_i][ind_j] = True
+                    mistakes += 1
+                    update_mistake_c = True
                 
                 numbox = num.get_rect()
                 numbox.center = num_pos[9*ind_i + ind_j]
@@ -119,6 +123,11 @@ while gameOn:
                     screen.fill(black)
                     io = False
                     inited = False
+                
+                elif mistakes == 5:
+                    gamestate = "DEFEAT"
+                    screen.fill((0,0,0))
+                    io = False
 
     if gamestate == "TITLE_SCREEN":
         generate_heading("Welcome to pysudoku!", (width/2, height/10))
@@ -157,8 +166,8 @@ while gameOn:
                 inited = False
         
     elif gamestate == "GAMEPLAY":
-        
         if not inited:
+            mistakes = 0
             start_time = perf_counter()
             for i in range(9):
                 row = []
@@ -171,9 +180,7 @@ while gameOn:
             answer_board = generator.main()
             # creating initial player board
             while True:
-                cpy = []
-                for i in range(9):
-                    cpy.append([num for num in answer_board[i]])
+                cpy = [[num for num in row] for row in answer_board]
                 player_board = generator.player_board(cpy, difficulty)
                 if player_board != None:
                     break
@@ -192,10 +199,18 @@ while gameOn:
             
             # displaying defualt text
             generate_title("Make your first move: ", (width/3, height/12))
+            mist_text = generate_title(f"Mistakes: 0/5", (2*width/3+140, height/2))
             inited = True
         
         quit_b = pygame.Rect(2*width/3, 2*height/3, 280, 75)
         generate_button("Quit game", quit_b)
+
+        if update_mistake_c:
+            overriderect = pygame.Rect(2*width/3, height/2-75/2, 300, 80)
+            pygame.draw.rect(screen, black, overriderect)
+            mist_text = generate_title(f"Mistakes: {mistakes}/5", (2*width/3+140, height/2))
+            update_mistake_c = False
+        
         # set the position in which the number is placed
         click, _0, _1 = pygame.mouse.get_pressed()
         if click:
@@ -203,14 +218,24 @@ while gameOn:
             for i in range(9):
                 for j in range(9):
                     if tiles[i][j].collidepoint(mouse) and player_board[i][j] == 0:
-                        print(player_board)
                         io = True
                         ind_i = i
                         ind_j = j
             
             if quit_b.collidepoint(mouse):
                 sys.exit()
-        
+    
+    elif gamestate == "DEFEAT":
+        generate_title("Game over!", (width/2, height/10))
+        generate_title("You made too many mistakes!", (width/2, height/10+80))
+        replay = pygame.Rect(width/2-100, height/2, 200, 75)
+        generate_button("Play again!", replay)
+        click, _0, _1 = pygame.mouse.get_pressed()
+        if click:
+            mpos = pygame.mouse.get_pos()
+            if replay.collidepoint(mpos):
+                gamestate = "SELECT_DIFF"
+                screen.fill((0,0,0))
     else:  
         if not inited: 
             end_time = perf_counter()
@@ -233,9 +258,6 @@ while gameOn:
 
     pygame.display.flip() 
     clock.tick(24)
-
-
-
 
 
 
