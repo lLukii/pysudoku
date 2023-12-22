@@ -2,7 +2,7 @@
 Most original game ever made fr no cap
 
 # changelog
-v. beta-3.0: Implemented feature that highlights affected tiles
+v. beta-3.0: Implemented feature that highlights affected tiles<br /> 
 v. beta-2.0: Implemented high score, play again, select difficulty, and potential full screen change.<br /> 
 v. beta-1.0: Implemented win screen + Tweaked user input <br />
 v. alpha-3.0: Implemented invalid sudoku detection <br />
